@@ -140,15 +140,14 @@ class DataTrainingArguments:
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
             raise ValueError(
                 "Need either a dataset name or a training/validation file.")
-        else:
-            if self.train_file is not None:
-                extension = self.train_file.split(".")[-1]
-                assert extension in [
-                    "csv", "json"], "`train_file` should be a csv or a json file."
-            if self.validation_file is not None:
-                extension = self.validation_file.split(".")[-1]
-                assert extension in [
-                    "csv", "json"], "`validation_file` should be a csv or a json file."
+        if self.train_file is not None:
+            extension = self.train_file.split(".")[-1]
+            assert extension in [
+                "csv", "json"], "`train_file` should be a csv or a json file."
+        if self.validation_file is not None:
+            extension = self.validation_file.split(".")[-1]
+            assert extension in [
+                "csv", "json"], "`validation_file` should be a csv or a json file."
         self.task_name = self.task_name.lower()
 
 
@@ -370,23 +369,23 @@ def main():
 
         results = metric.compute(
             predictions=true_predictions, references=true_labels)
-        if data_args.return_entity_level_metrics:
-            # Unpack nested dictionaries
-            final_results = {}
-            for key, value in results.items():
-                if isinstance(value, dict):
-                    for n, v in value.items():
-                        final_results[f"{key}_{n}"] = v
-                else:
-                    final_results[key] = value
-            return final_results
-        else:
+        if not data_args.return_entity_level_metrics:
             return {
                 "precision": results["overall_precision"],
                 "recall": results["overall_recall"],
                 "f1": results["overall_f1"],
                 "accuracy": results["overall_accuracy"],
             }
+
+        # Unpack nested dictionaries
+        final_results = {}
+        for key, value in results.items():
+            if isinstance(value, dict):
+                for n, v in value.items():
+                    final_results[f"{key}_{n}"] = v
+            else:
+                final_results[key] = value
+        return final_results
 
     # Initialize our Trainer
     trainer = Trainer(
